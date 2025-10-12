@@ -1,0 +1,36 @@
+{
+  "name": "MedVisNet Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "runArgs": [
+    "--gpus",
+    "all",
+    "--shm-size=8g"
+  ],
+  "containerEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/src"
+  },
+  "postCreateCommand": "pip install --no-cache-dir -r requirements.txt && pre-commit install",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "python.analysis.extraPaths": [
+          "src"
+        ]
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-vscode.cpptools",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  },
+  "remoteUser": "developer"
+}

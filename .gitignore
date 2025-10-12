@@ -222,3 +222,4 @@ data/
 experiments/
 mlruns/
 .env
+.vscode
