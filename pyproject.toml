@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medvisnet"
+version = "0.1.0"
+description = "Medical computer vision project with DL and DevOps."
+authors = [{ name = "Martrix17" }]
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.8.0",
+    "torchvision",
+    "mlflow",
+    "pillow",
+    "tqdm",
+    "numpy",
+]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = ["__pycache__", "build", "dist"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+src_paths = ["src", "tests"]
