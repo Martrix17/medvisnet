@@ -1,0 +1,60 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 -r requirements.txt
+
+      - name: Run linters
+        run: |
+          black --check src tests
+          isort --check src tests
+          flake8 src tests
+
+  test:
+    name: Unit Tests with Coverage
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov -r requirements.txt
+          pip install -e .
+
+      - name: Run tests with coverage
+        run: pytest -q --disable-warnings --cov=src --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to GitHub summary
+        run: |
+          echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          coverage report --fail-under=75 >> $GITHUB_STEP_SUMMARY
