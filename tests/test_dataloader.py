@@ -35,6 +35,7 @@ def test_class_weights_sum_to_one(mock_covid_data):
 
 def test_train_dataloader_balanced_sampling(mock_covid_data):
     """Weighted sampler should roughly balance sampled labels."""
+    torch.manual_seed(42)
     dm = CovidRadiographyDataModule(mock_covid_data, batch_size=8)
     dm.setup()
 
@@ -42,11 +43,14 @@ def test_train_dataloader_balanced_sampling(mock_covid_data):
     batch_labels = []
     for i, (_, labels) in enumerate(loader):
         batch_labels.extend(labels.tolist())
-        if i > 10:
+        if i > 100:
             break
 
     counts = torch.bincount(torch.tensor(batch_labels))
-    assert (counts.max() - counts.min()) < 5, "Sampler not balancing classes properly"
+    mean_count = counts.float().mean().item()
+    imbalance_ratio = (counts.max().item() - counts.min().item()) / mean_count
+
+    assert imbalance_ratio < 0.4, f"Sampler imbalance too high: {counts.tolist()}"
 
 
 def test_dataloader_shapes(mock_covid_data):

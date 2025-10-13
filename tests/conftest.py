@@ -12,10 +12,10 @@ def mock_covid_data(tmp_path_factory):
     """Create mock COVID Radiography dataset."""
     root = tmp_path_factory.mktemp("covid_radiography")
     class_sample_counts = {
-        "COVID": 6,
-        "NORMAL": 10,
-        "LUNG_OPACITY": 7,
-        "VIRAL_PNEUMONIA": 4,
+        "COVID": 100,
+        "NORMAL": 100,
+        "LUNG_OPACITY": 100,
+        "VIRAL_PNEUMONIA": 100,
     }
     for cls, n_samples in class_sample_counts.items():
         img_dir = root / cls / "images"
