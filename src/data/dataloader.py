@@ -162,11 +162,17 @@ class CovidRadiographyDataModule:
         """Create WeightedRandomSampler for balanced training."""
         base_dataset = dataset.dataset
         indices = dataset.indices
-        labels = [base_dataset.samples[i][1] for i in indices]
 
-        counts = Counter(labels)
-        class_weights = {cls: 1.0 / cnt for cls, cnt in counts.items()}
-        sample_weights = [class_weights[label] for label in labels]
+        labels = [base_dataset.samples[i][1] for i in indices]
+        label_indices = [base_dataset.class_to_idx[label] for label in labels]
+        labels_tensor = torch.tensor(label_indices, dtype=torch.long)
+
+        all_labels = [s[1] for s in base_dataset.samples]
+        all_label_indices = [base_dataset.class_to_idx[label] for label in all_labels]
+        class_counts = torch.bincount(torch.tensor(all_label_indices, dtype=torch.long))
+
+        class_weights = 1.0 / class_counts.float()
+        sample_weights = class_weights[labels_tensor]
 
         return WeightedRandomSampler(
             weights=sample_weights,
