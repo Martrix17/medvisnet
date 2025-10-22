@@ -8,7 +8,7 @@ Features:
 """
 
 from collections import Counter
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -32,7 +32,10 @@ class CovidRadiographyDataModule:
     def __init__(
         self,
         data_dir: str,
+        augment: bool = False,
         image_size: Tuple[int, int] = (224, 224),
+        mean: List[float] = [0.485, 0.456, 0.406],
+        std: List[float] = [0.229, 0.224, 0.225],
         batch_size: int = 32,
         num_workers: int = 4,
         val_split: float = 0.15,
@@ -42,7 +45,10 @@ class CovidRadiographyDataModule:
         """
         Args:
             data_dir: Path to dataset root.
+            augment: If True, applies augmentations to train set.
             image_size: Size for resizing images.
+            mean: Mean values for  normalization.
+            std: Standard deviation values for  normalization.
             batch_size: Batch size for DataLoaders.
             num_workers: Number of workers for DataLoaders.
             val_split: Fraction of data to use for validation.
@@ -50,7 +56,10 @@ class CovidRadiographyDataModule:
             seed: Random seed for reproducibility.
         """
         self.data_dir = data_dir
+        self.augment = augment
         self.image_size = image_size
+        self.mean = mean
+        self.std = std
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.val_split = val_split
@@ -62,11 +71,16 @@ class CovidRadiographyDataModule:
         self.test_dataset: Optional[Subset] = None
         self.class_weights: Optional[torch.Tensor] = None
         self.class_to_idx: Optional[Dict[str, int]] = None
+        self.label_names: Optional[List[str]] = None
 
     def setup(self) -> None:
         """Create stratified train/val/test splits."""
         full_dataset = CovidRadiographyDataset(
-            data_dir=self.data_dir, train=True, image_size=self.image_size
+            data_dir=self.data_dir,
+            augment=self.augment,
+            image_size=self.image_size,
+            mean=self.mean,
+            std=self.std,
         )
 
         labels = [lbl for _, lbl in full_dataset.samples]
@@ -91,19 +105,28 @@ class CovidRadiographyDataModule:
         self.train_dataset = Subset(full_dataset, train_idx)
         self.val_dataset = Subset(
             CovidRadiographyDataset(
-                self.data_dir, train=False, image_size=self.image_size
+                self.data_dir,
+                augment=False,
+                image_size=self.image_size,
+                mean=self.mean,
+                std=self.std,
             ),
             val_idx,
         )
         self.test_dataset = Subset(
             CovidRadiographyDataset(
-                self.data_dir, train=False, image_size=self.image_size
+                self.data_dir,
+                augment=False,
+                image_size=self.image_size,
+                mean=self.mean,
+                std=self.std,
             ),
             test_idx,
         )
 
         self.class_to_idx = full_dataset.class_to_idx
         self.class_weights = self._compute_class_weights(full_dataset)
+        self.label_names = self.get_label_names()
 
     def train_dataloader(self) -> DataLoader:
         """Return DataLoader with weighted sampling for training."""
@@ -142,7 +165,14 @@ class CovidRadiographyDataModule:
             raise RuntimeError("Call setup() before accessing class weights.")
         return self.class_weights
 
-    def num_classes(self) -> int:
+    def get_label_names(self) -> List[str]:
+        """Return list of class names ordered by class index."""
+        if self.class_to_idx is None:
+            raise RuntimeError("Call setup() before accessing label names.")
+        sorted_classes = sorted(self.class_to_idx.items(), key=lambda x: x[1])
+        return [name for name, _ in sorted_classes]
+
+    def get_num_classes(self) -> int:
         """Return number of classes."""
         if not self.class_to_idx:
             raise RuntimeError("Call setup() before accessing class count.")
