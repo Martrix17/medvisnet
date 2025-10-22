@@ -2,6 +2,7 @@
 Unit tests for CovidRadiographyDataModule and dataset integration.
 """
 
+import pytest
 import torch
 
 from src.data.dataloader import CovidRadiographyDataModule
@@ -18,6 +19,13 @@ def test_data_module_setup(mock_covid_data):
     assert dm.train_dataset is not None
     assert dm.val_dataset is not None
     assert dm.test_dataset is not None
+    assert dm.class_to_idx is not None
+    assert set(dm.class_to_idx.keys()) == {
+        "COVID",
+        "NORMAL",
+        "LUNG_OPACITY",
+        "VIRAL_PNEUMONIA",
+    }
 
     total = len(dm.train_dataset) + len(dm.val_dataset) + len(dm.test_dataset)
     full_dataset = CovidRadiographyDataset(mock_covid_data)
@@ -43,7 +51,7 @@ def test_train_dataloader_balanced_sampling(mock_covid_data):
     batch_labels = []
     for i, (_, labels) in enumerate(loader):
         batch_labels.extend(labels.tolist())
-        if i > 100:
+        if i > 50:
             break
 
     counts = torch.bincount(torch.tensor(batch_labels))
@@ -65,3 +73,32 @@ def test_dataloader_shapes(mock_covid_data):
     assert imgs.shape[1] == 3
     assert labels.ndim == 1
     assert labels.dtype == torch.long
+
+
+def test_split_reproducibility(mock_covid_data):
+    dm1 = CovidRadiographyDataModule(mock_covid_data, seed=123)
+    dm2 = CovidRadiographyDataModule(mock_covid_data, seed=123)
+    dm1.setup()
+    dm2.setup()
+    assert list(dm1.train_dataset.indices) == list(dm2.train_dataset.indices)
+
+
+def test_label_names_and_num_classes(mock_covid_data):
+    dm = CovidRadiographyDataModule(mock_covid_data)
+    dm.setup()
+    names = dm.get_label_names()
+    assert isinstance(names, list) and all(isinstance(n, str) for n in names)
+    assert dm.get_num_classes() == len(names)
+
+
+def test_access_before_setup_raises(mock_covid_data):
+    dm = CovidRadiographyDataModule(mock_covid_data)
+    with pytest.raises(RuntimeError):
+        dm.get_class_weights()
+
+
+def test_setup_with_empty_dataset(tmp_path):
+    (tmp_path / "EMPTY").mkdir()
+    dm = CovidRadiographyDataModule(tmp_path)
+    with pytest.raises(ValueError):
+        dm.setup()
