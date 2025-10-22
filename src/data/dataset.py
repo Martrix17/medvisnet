@@ -19,17 +19,20 @@ class CovidRadiographyDataset(Dataset):
     def __init__(
         self,
         data_dir: str,
-        train: bool = True,
+        augment: bool = False,
         image_size: Tuple[int, int] = (224, 224),
+        mean: List[float] = [0.485, 0.456, 0.406],
+        std: List[float] = [0.229, 0.224, 0.225],
     ) -> None:
         """
         Args:
             data_dir: Path to dataset root.
-            train: If True, applies augmentations.
+            augment: If True, applies augmentations.
             image_size: Size for resizing images.
+            mean: Mean values for  normalization.
+            std: Standard deviation values for  normalization.
         """
         self.data_dir = Path(data_dir)
-        self.train = train
 
         self.samples = self._load_samples()
         self.class_to_idx = self._build_class_index()
@@ -38,12 +41,12 @@ class CovidRadiographyDataset(Dataset):
         self.transform = v2.Compose(
             [
                 v2.Resize(image_size),
-                v2.RandomHorizontalFlip() if train else v2.Lambda(lambda x: x),
-                v2.RandomVerticalFlip() if train else v2.Lambda(lambda x: x),
-                v2.RandomRotation(5) if train else v2.Lambda(lambda x: x),
+                v2.RandomHorizontalFlip() if augment else v2.Lambda(lambda x: x),
+                v2.RandomVerticalFlip() if augment else v2.Lambda(lambda x: x),
+                v2.RandomRotation(5) if augment else v2.Lambda(lambda x: x),
                 v2.ToImage(),
                 v2.ToDtype(torch.float32, scale=True),
-                v2.Normalize([0.5], [0.5]),
+                v2.Normalize(mean, std) if mean and std else v2.Lambda(lambda x: x),
             ]
         )
 
