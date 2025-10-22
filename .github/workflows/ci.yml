@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: 🧪 CI Pipeline
 
 on:
   push:
@@ -8,53 +8,74 @@ on:
 
 jobs:
   lint:
-    name: Lint & Format Check
+    name: 🧹 Code Quality Check
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: ⚡ Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 🔧 Install lint dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install black isort flake8 -r requirements.txt
+          pip install black isort flake8
 
-      - name: Run linters
+      - name: 🧾 Run Black, Isort & Flake8
         run: |
           black --check src tests
-          isort --check src tests
+          isort --check-only src tests
           flake8 src tests
 
   test:
-    name: Unit Tests with Coverage
+    name: 🧪 Unit Tests & Coverage
     needs: lint
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+        
+      - name: ⚡ Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
-      - name: Install dependencies
+      - name: 🔧 Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov -r requirements.txt
+          pip install pytest pytest-cov coverage
+          pip install -r requirements.txt
           pip install -e .
 
-      - name: Run tests with coverage
-        run: pytest -q --disable-warnings --cov=src --cov-report=xml --cov-report=term-missing
-
-      - name: Upload coverage to GitHub summary
+      - name: 🧪 Run test suite with coverage
         run: |
-          echo "## Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          pytest -v -s --disable-warnings \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: 📊 Upload coverage summary
+        run: |
+          echo "## 🧮 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
           coverage report --fail-under=75 >> $GITHUB_STEP_SUMMARY
