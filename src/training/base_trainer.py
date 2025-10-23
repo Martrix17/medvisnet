@@ -63,7 +63,7 @@ class BaseTrainer:
         total_epochs: int,
         compute_loss: bool = True,
         return_preds: bool = False,
-    ) -> Dict:
+    ) -> Dict[str, float | torch.Tensor]:
         """Runs one epoch of evaluation."""
         self.model.eval()
         total_loss = 0.0
