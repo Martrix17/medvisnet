@@ -19,6 +19,7 @@ class VisionTransformer(nn.Module):
         self,
         model_name: str,
         num_classes: int = 4,
+        num_hidden_layers: int = 0,
         weights: str | None = None,
         dropout: float = 0.1,
         freeze_backbone: bool = False,
@@ -27,6 +28,7 @@ class VisionTransformer(nn.Module):
         Args:
             model_name (str): Name of the torchvision ViT model to use.
             num_classes (int): Number of output classes.
+            num_hidden_layers (int): Number of hidden layers in classification head.
             weights (str): Pretrained weights to use. See torchvision docs.
             dropout (float): Dropout rate for the classification head.
             freeze_backbone (bool): Whether to freeze the backbone during training.
@@ -39,7 +41,7 @@ class VisionTransformer(nn.Module):
         self.freeze_backbone = freeze_backbone
 
         self.vit = self._build_model()
-        self._replace_head()
+        self._replace_head(num_hidden_layers)
         self._freeze_backbone()
 
     def _build_model(self):
@@ -53,13 +55,26 @@ class VisionTransformer(nn.Module):
         builder = self.AVAILABLE_MODELS[self.model_name]
         return builder(weights=self.weights)
 
-    def _replace_head(self) -> None:
+    def _replace_head(self, num_hidden_layers: int = 1) -> None:
         """Replace classification head with custom head."""
         in_features = self.vit.heads.head.in_features
-        self.vit.heads.head = nn.Sequential(
-            nn.Dropout(self.dropout_rate),
-            nn.Linear(in_features, self.num_classes),
-        )
+        layers = [nn.Dropout(self.dropout_rate)]
+
+        current_dim = in_features
+        for _ in range(num_hidden_layers):
+            next_dim = max(1, current_dim // 2)
+            layers.extend(
+                [
+                    nn.Linear(current_dim, next_dim),
+                    nn.BatchNorm1d(next_dim),
+                    nn.ReLU(),
+                    nn.Dropout(self.dropout_rate),
+                ]
+            )
+            current_dim = next_dim
+
+        layers.append(nn.Linear(current_dim, self.num_classes))
+        self.vit.heads.head = nn.Sequential(*layers)
 
     def _freeze_backbone(self) -> None:
         """Freeze backbone encoder parameters."""
