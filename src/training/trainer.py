@@ -23,11 +23,11 @@ class Trainer:
         base_trainer: BaseTrainer,
         epochs: int,
         data_module: CovidRadiographyDataModule,
-        scheduler: optim.lr_scheduler._LRScheduler,
-        metrics_manager: MetricsManager,
-        logger: MLFlowLogger,
-        early_stopping: EarlyStopping,
-        checkpoint_manager: CheckpointManager,
+        scheduler: optim.lr_scheduler._LRScheduler | None = None,
+        metrics_manager: MetricsManager | None = None,
+        logger: MLFlowLogger | None = None,
+        early_stopping: EarlyStopping | None = None,
+        checkpoint_manager: CheckpointManager | None = None,
         val_every_n_epochs: int = 1,
         compute_metrics_n_val_epoch: int = 1,
     ) -> None:
@@ -101,12 +101,13 @@ class Trainer:
                 )
                 val_loss = val_result["loss"]
 
-                if compute_metrics:
+                if compute_metrics and self.metrics_manager:
                     self.metrics_manager.reset()
                     val_metrics = self.metrics_manager.compute(
                         preds=val_result["predictions"], targets=val_result["targets"]
                     )
-                    self.logger.log_metrics(metrics=val_metrics, step=epoch + 1)
+                    if self.logger:
+                        self.logger.log_metrics(metrics=val_metrics, step=epoch + 1)
 
                 if self.checkpoint_manager:
                     self.checkpoint_manager.save_if_improved(
@@ -172,7 +173,7 @@ class Trainer:
                 text=metrics["report"], file_path="classification_report.txt"
             )
 
-        if plot_metrics:
+        if plot_metrics and self.metrics_manager:
             figures = self._visualize_metrics(
                 preds=output["predictions"],
                 targets=output["targets"],
@@ -195,6 +196,7 @@ class Trainer:
         self, preds: torch.Tensor, targets: torch.Tensor, label_names: List[str]
     ) -> Dict[str, Figure]:
         """Visualize test metrics"""
+        assert self.metrics_manager is not None
         figures = {}
 
         auroc_metric = self.metrics_manager.metrics["auroc"]
