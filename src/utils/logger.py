@@ -42,7 +42,7 @@ class MLFlowLogger:
         """Set run name."""
         self.run_name = run_name
 
-    def log_metrics(self, metrics: Dict[str, float], step: int) -> None:
+    def log_metrics(self, metrics: Dict[str, Any], step: int) -> None:
         """Log scalar metrics to MLFlow."""
         mlflow.log_metrics(metrics=metrics, step=step)
 
@@ -54,7 +54,7 @@ class MLFlowLogger:
         """Log file or drectory as an artifact."""
         mlflow.log_artifact(artifact_path=file_path)
 
-    def log_text(self, text: str, file_path: str) -> None:
+    def log_text(self, text: Any, file_path: str) -> None:
         """Log text content as an artifact."""
         mlflow.log_text(text=text, artifact_file=file_path)
 
