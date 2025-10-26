@@ -1,0 +1,34 @@
+# @package _global_
+
+defaults:
+  - /train
+  - _self_
+
+logging:
+  experiment_name: "ViT_COVID_Classification_Freeze"
+  run_name: "vit_freeze"
+
+data:
+  batch_size: 40
+  mean: [0.485, 0.456, 0.406]
+  std: [0.229, 0.224, 0.225]
+  seed: 1337
+
+trainer:
+  epochs: 40
+  val_every_n_epochs: 1
+  compute_metrics_n_val_epoch: 2
+
+  optimizer:
+    name: AdamW
+    lr: 5e-5
+    weight_decay: 1e-4
+
+  checkpoint:
+    filename: "freeze_model.pt"
+
+model:
+  name: "vit_b_16"
+  dropout: 0.2
+  weights: 'DEFAULT'
+  freeze_backbone: true

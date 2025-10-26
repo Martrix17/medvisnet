@@ -1,0 +1,4 @@
+uri: "mlruns"
+experiment_name: "ViT_COVID_Classification_Base"
+run_name: "vit_baseline"
+log_system: true

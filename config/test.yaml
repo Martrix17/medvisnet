@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+  - logging: mlflow
+  - data: data
+  - model: vit
+  - trainer: test_trainer

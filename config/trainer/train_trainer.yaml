@@ -1,0 +1,30 @@
+device: "cuda"
+epochs: 50
+val_every_n_epochs: 1
+compute_metrics_n_val_epoch: 2
+load_checkpoint: false
+resume_training: false
+
+criterion:
+  name: CrossEntropyLoss
+
+optimizer:
+  name: Adam
+  lr: 1e-4
+  weight_decay: 1e-5
+
+scheduler:
+  name: ReduceLROnPlateau
+  mode: "min"
+  factor: 0.1
+  patience: 4
+
+early_stopping:
+  patience: 12
+  delta: 0.001
+
+checkpoint:
+  save_dir: "experiments/checkpoints"
+  filename: "base_model.pt"
+  patience: 3
+  vebose: true
