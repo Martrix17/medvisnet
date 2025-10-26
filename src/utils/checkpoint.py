@@ -68,8 +68,8 @@ class CheckpointManager:
             if epoch - self.counter >= self.patience:
                 if self.verbose:
                     print(
-                        f"💾 Validation improved ({self.best_loss:.4f} → "
-                        f"{val_loss:.4f}). Saving checkpoint."
+                        f"💾 Validation improved on epoch {epoch} "
+                        f"({self.best_loss:.4f} → {val_loss:.4f}). Saving checkpoint."
                     )
                 self.best_loss = val_loss
                 self.save(epoch, model, optimizer, scaler, scheduler, val_loss)
