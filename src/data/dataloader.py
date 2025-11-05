@@ -1,10 +1,10 @@
 """
-DataLoader utilities for COVID-19 Radiography dataset.
+DataModule class for COVID-19 Radiography dataset.
 
-Features:
-- Stratified train/val/test split
-- WeightedRandomSampler for balanced training
-- Class-weight computation for imbalanced loss handling
+Example:
+    >>> dm = CovidRadiographyDataModule(data_dir="path/to/data", augment=True)
+    >>> dm.setup()
+    >>> train_loader = dm.train_dataloader()
 """
 
 from collections import Counter
@@ -20,13 +20,14 @@ from .dataset import CovidRadiographyDataset
 
 class CovidRadiographyDataModule:
     """
-    DataModule-like wrapper for CovidRadiographyDataset.
+    DataModule wrapper for CovidRadiographyDataset.
 
-    Handles:
-        - Train/val/test split
-        - Weighted sampling for training
-        - Class weight computation for losses
-        - DataLoader creation for each split
+    Features:
+    - Stratified train/val/test split
+    - WeightedRandomSampler for balanced training
+    - Class-weight computation for imbalanced loss handling
+
+    Workflow: Initialize → setup() → access train/val/test_dataloader()
     """
 
     def __init__(
@@ -34,8 +35,8 @@ class CovidRadiographyDataModule:
         data_dir: str,
         augment: bool = False,
         image_size: Tuple[int, int] = (224, 224),
-        mean: List[float] = [0.485, 0.456, 0.406],
-        std: List[float] = [0.229, 0.224, 0.225],
+        mean: Tuple[float, float, float] = (0.485, 0.456, 0.406),
+        std: Tuple[float, float, float] = (0.229, 0.224, 0.225),
         batch_size: int = 32,
         num_workers: int = 4,
         val_split: float = 0.15,
@@ -45,16 +46,21 @@ class CovidRadiographyDataModule:
         """
         Args:
             data_dir: Path to dataset root.
-            augment: If True, applies augmentations to train set.
-            image_size: Size for resizing images.
-            mean: Mean values for  normalization.
-            std: Standard deviation values for  normalization.
-            batch_size: Batch size for DataLoaders.
-            num_workers: Number of workers for DataLoaders.
-            val_split: Fraction of data to use for validation.
-            test_split: Fraction of data to use for testing.
-            seed: Random seed for reproducibility.
+            augment: Apply augmentations to training set only.
+            image_size: Target size for resizing.
+            mean: Channel means for normalization (ImageNet defaults).
+            std: Channel stds for normalization (ImageNet defaults).
+            batch_size: Batch size for all DataLoaders.
+            num_workers: Number of workers for parallel loading.
+            val_split: Fraction for validation (0.0-0.5).
+            test_split: Fraction for testing (0.0-0.5).
+            seed: Random seed for reproducible splits.
         """
+        if val_split + test_split >= 0.5:
+            raise ValueError(
+                f"val_split ({val_split}) + test_split ({test_split}) must be < 1.0"
+            )
+
         self.data_dir = data_dir
         self.augment = augment
         self.image_size = image_size
@@ -74,10 +80,10 @@ class CovidRadiographyDataModule:
         self.label_names: Optional[List[str]] = None
 
     def setup(self) -> None:
-        """Create stratified train/val/test splits."""
+        """Create stratified train/val/test splits and compute class weights."""
         full_dataset = CovidRadiographyDataset(
             data_dir=self.data_dir,
-            augment=self.augment,
+            augment=False,
             image_size=self.image_size,
             mean=self.mean,
             std=self.std,
@@ -102,7 +108,17 @@ class CovidRadiographyDataModule:
             random_state=self.seed,
         )
 
-        self.train_dataset = Subset(full_dataset, train_idx)
+        self.train_dataset = Subset(
+            CovidRadiographyDataset(
+                data_dir=self.data_dir,
+                augment=self.augment,
+                image_size=self.image_size,
+                mean=self.mean,
+                std=self.std,
+            ),
+            train_idx,
+        )
+
         self.val_dataset = Subset(
             CovidRadiographyDataset(
                 self.data_dir,
@@ -150,7 +166,7 @@ class CovidRadiographyDataModule:
         )
 
     def test_dataloader(self) -> DataLoader:
-        """Return DataLoader for test (no balancing)."""
+        """Return DataLoader for testing (no balancing)."""
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
@@ -160,13 +176,13 @@ class CovidRadiographyDataModule:
         )
 
     def get_class_weights(self) -> torch.Tensor:
-        """Expose computed class weights for loss function."""
+        """Return class weights for loss functions (inverse frequency, normalized)."""
         if self.class_weights is None:
             raise RuntimeError("Call setup() before accessing class weights.")
         return self.class_weights
 
     def get_label_names(self) -> List[str]:
-        """Return list of class names ordered by class index."""
+        """Return class names (labels) ordered by index."""
         if self.class_to_idx is None:
             raise RuntimeError("Call setup() before accessing label names.")
         sorted_classes = sorted(self.class_to_idx.items(), key=lambda x: x[1])
@@ -179,7 +195,7 @@ class CovidRadiographyDataModule:
         return len(self.class_to_idx)
 
     def _compute_class_weights(self, dataset: CovidRadiographyDataset) -> torch.Tensor:
-        """Compute class weights inverse to frequency."""
+        """Compute normalized class weights (inverse frequency)."""
         labels = [lbl for _, lbl in dataset.samples]
         counts = Counter(labels)
         total = sum(counts.values())
@@ -189,7 +205,7 @@ class CovidRadiographyDataModule:
         return weights_tensor
 
     def _make_weighted_sampler(self, dataset: Subset) -> WeightedRandomSampler:
-        """Create WeightedRandomSampler for balanced training."""
+        """Create weighted random sampler for balanced training batches."""
         base_dataset = dataset.dataset
         indices = dataset.indices
 

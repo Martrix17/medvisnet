@@ -1,5 +1,9 @@
 """
-Custom PyTorch dataset for COVID-19 Radiography Database classification tasks.
+Dataset class for COVID-19 Radiography dataset.
+
+Example:
+    >>> dataset = CovidRadiographyDataset(data_dir="path/to/data", augment=True)
+    >>> image, label = dataset[0]
 """
 
 from pathlib import Path
@@ -13,7 +17,9 @@ from torchvision.transforms import v2
 
 class CovidRadiographyDataset(Dataset):
     """
-    Dataset for COVID-19 Radiography Database.
+    Dataset class for COVID-19 Radiography Database with configurable augmentation.
+
+    Labels are extracted from filename prefixes (e.g., "COVID-1.png" → "COVID").
     """
 
     def __init__(
@@ -21,16 +27,16 @@ class CovidRadiographyDataset(Dataset):
         data_dir: str,
         augment: bool = False,
         image_size: Tuple[int, int] = (224, 224),
-        mean: List[float] = [0.485, 0.456, 0.406],
-        std: List[float] = [0.229, 0.224, 0.225],
+        mean: Tuple[float, float, float] = (0.485, 0.456, 0.406),
+        std: Tuple[float, float, float] = (0.229, 0.224, 0.225),
     ) -> None:
         """
         Args:
-            data_dir: Path to dataset root.
-            augment: If True, applies augmentations.
-            image_size: Size for resizing images.
-            mean: Mean values for  normalization.
-            std: Standard deviation values for  normalization.
+            data_dir: Path to dataset root directory.
+            augment: Apply random flips and rotation if True.
+            image_size: Target size for resizing.
+            mean: Channel means for normalization (ImageNet defaults).
+            std: Channel stds for normalization (ImageNet defaults).
         """
         self.data_dir = Path(data_dir)
 
@@ -51,7 +57,7 @@ class CovidRadiographyDataset(Dataset):
         )
 
     def _load_samples(self) -> List[Tuple[Path, str]]:
-        """Find all image files and infer labels from filenames."""
+        """Find images and extract labels from filename prefixes."""
         samples = []
         for class_dir in self.data_dir.iterdir():
             if not class_dir.is_dir():
@@ -65,7 +71,7 @@ class CovidRadiographyDataset(Dataset):
         return samples
 
     def _build_class_index(self) -> Dict[str, int]:
-        """Create label to index mapping."""
+        """Create sorted label-to-index mapping."""
         classes = sorted({label for _, label in self.samples})
         return {cls_name: idx for idx, cls_name in enumerate(classes)}
 
@@ -73,8 +79,15 @@ class CovidRadiographyDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        img_path, label = self.samples[idx]
-        image = Image.open(img_path).convert("RGB")
+        """
+        Args:
+            idx: Sample index.
+
+        Returns:
+            Tuple of (image tensor [C, H, W], label tensor [1]).
+        """
+        image_path, label = self.samples[idx]
+        image = Image.open(image_path).convert("RGB")
         image = self.transform(image)
 
         label_idx = self.class_to_idx[label]
