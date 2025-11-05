@@ -1,0 +1,19 @@
+[run]
+source = src
+
+omit =
+    */__init__.py
+    src/inference/factories.py
+    src/training/factories.py
+    src/utils/exporter.py
+    src/utils/helper.py
+    src/utils/logger.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    pass
+
+show_missing = True
+fail_under = 75
