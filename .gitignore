@@ -219,10 +219,10 @@ __marimo__/
 *.pyc
 *.pyo
 data/
+models/
 !/src/data/
 !/src/models/
 !/config/data/
-models/
 mlruns/
 outputs/
 results/inference/
