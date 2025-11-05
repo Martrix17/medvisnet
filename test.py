@@ -1,4 +1,4 @@
-"""Main test function for iamge classification."""
+"""Main test function for image classification."""
 
 import hydra
 from omegaconf import DictConfig  # , OmegaConf
@@ -58,12 +58,12 @@ def main(cfg: DictConfig):
         load_checkpoint=cfg.trainer.load_checkpoint,
         plot_metrics=cfg.trainer.plot_metrics,
     )
-    print("Testing complete.")
+    print("✅ Testing complete.")
 
     logger.end_run()
 
     local_save_dir = cfg.trainer.local_save_dir
-    print(f"Saving outputs locally to: {local_save_dir}")
+    print(f"💾 Saving outputs locally to: {local_save_dir}")
 
     assert data_module.test_dataset is not None, "test_dataset should be loaded"
     base_dataset = data_module.test_dataset.dataset
