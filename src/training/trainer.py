@@ -1,4 +1,20 @@
-"""Trainer class for model fitting and testing with BaseTrainer."""
+"""
+High-level trainer for model training loops, validation, and testing.
+
+Example:
+    >>> trainer = Trainer(
+    ...     base_trainer=base_trainer,
+    ...     epochs=50,
+    ...     data_module=data_module,
+    ...     scheduler=scheduler,
+    ...     metrics_manager=metrics,
+    ...     logger=logger,
+    ...     early_stopping=early_stopping,
+    ...     checkpoint_manager=checkpoint
+    ... )
+    >>> trainer.fit()
+    >>> results = trainer.test(load_checkpoint=True, plot_metrics=True)
+"""
 
 from typing import Dict, List
 
@@ -8,7 +24,7 @@ from torch import optim
 
 from src.data.dataloader import CovidRadiographyDataModule
 from src.utils.checkpoint import CheckpointManager
-from src.utils.logger import MLFlowLogger
+from src.utils.logger import MLflowLogger
 
 from .base_trainer import BaseTrainer
 from .callbacks import EarlyStopping
@@ -16,7 +32,16 @@ from .metrics import MetricsManager
 
 
 class Trainer:
-    """Handles model training, validation, and testing with mixed precision."""
+    """
+    Handles full training pipeline with optional logging, checkpointing, and callbacks.
+
+    Features:
+    - Periodic validation with configurable frequency
+    - Automatic checkpointing on validation improvement
+    - Early stopping to prevent overfitting
+    - Comprehensive test evaluation with metric visualization
+    - MLFlow logging integration
+    """
 
     def __init__(
         self,
@@ -25,7 +50,7 @@ class Trainer:
         data_module: CovidRadiographyDataModule,
         scheduler: optim.lr_scheduler._LRScheduler | None = None,
         metrics_manager: MetricsManager | None = None,
-        logger: MLFlowLogger | None = None,
+        logger: MLflowLogger | None = None,
         early_stopping: EarlyStopping | None = None,
         checkpoint_manager: CheckpointManager | None = None,
         val_every_n_epochs: int = 1,
@@ -33,18 +58,17 @@ class Trainer:
     ) -> None:
         """
         Args:
-            base_trainer: BaseTrainer instance for training/validation/testing.
-            epochs: Number of total training epochs.
+            base_trainer: BaseTrainer for train/val/test.
+            epochs: Total number of epochs.
             data_module: Provides train/val/test dataloaders.
             scheduler: Learning rate scheduler (optional).
-            metrics: MetricsManager instance (optional).
-            logger: MLFlowLogger instance (optional).
-            early_stopping: EarlyStopping callback (optional).
-            checkpoint: CheckpointManager for saving/loading models (optional).
-            resume_training: Resume training from a saved checkpoint.
-            val_every_n_epochs: Run validation every N epochs.
-            compute_metrics_n_val_epoch: Compute validation metrics every
-                N validation epochs.
+            metrics_manager: Computes and tracks metrics (optional).
+            logger: MLFlow logger for experiment tracking (optional).
+            early_stopping: Stops training on validation plateau (optional).
+            checkpoint_manager: Saves/loads model checkpoints (optional).
+            val_every_n_epochs: Validation frequency (0 = no validation).
+            compute_metrics_n_val_epoch: Metric computation frequency during validation
+                (relative to validation epochs, requires logger).
         """
         self.base_trainer = base_trainer
         self.epochs = epochs
@@ -62,8 +86,14 @@ class Trainer:
             else None
         )
 
-    def fit(self, load_checkpoint: bool = False, resume_training: bool = False) -> None:
-        """Main training/validation loop."""
+    def fit(self, load_checkpoint: bool = False) -> None:
+        """
+        Run full training loop with optional validation, checkpointing,
+        and early stopping.
+
+        Args:
+            load_checkpoint: Load checkpoint and resume training if True.
+        """
         start_epoch = 0
         if self.checkpoint_manager and load_checkpoint:
             start_epoch = self.checkpoint_manager.load(
@@ -71,7 +101,7 @@ class Trainer:
                 optimizer=self.base_trainer.optimizer,
                 scaler=self.base_trainer.scaler,
                 scheduler=self.scheduler,
-                resume_training=resume_training,
+                resume_training=True,
             )
 
         for epoch in range(start_epoch, self.epochs):
@@ -137,7 +167,20 @@ class Trainer:
     def test(
         self, load_checkpoint: bool = False, plot_metrics: bool = True
     ) -> Dict[str, torch.Tensor | Figure]:
-        """Evaluate model on test set."""
+        """
+        Evaluate model on test set with optional metric visualization.
+
+        Args:
+            load_checkpoint: Load best checkpoint before testing if True.
+            plot_metrics: Generate and return metric plots if True.
+
+        Returns:
+            Dict containing:
+            - 'predictions' (Tensor): Model outputs [N, num_classes]
+            - 'targets' (Tensor): Ground truth labels [N]
+            - 'metrics' (Dict): Test metrics if metrics_manager provided
+            - 'figures' (Dict): Matplotlib figures if plot_metrics=True
+        """
         if self.checkpoint_manager and load_checkpoint:
             self.checkpoint_manager.load(
                 model=self.base_trainer.model,
@@ -195,7 +238,7 @@ class Trainer:
     def _visualize_metrics(
         self, preds: torch.Tensor, targets: torch.Tensor, label_names: List[str]
     ) -> Dict[str, Figure]:
-        """Visualize test metrics"""
+        """Visualize AUROC, ROC, and confusion matrix plots."""
         assert self.metrics_manager is not None
         figures = {}
 

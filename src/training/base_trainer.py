@@ -1,4 +1,16 @@
-"""BaseTrainer class for model training, evaluation with mixed precision."""
+"""
+Base trainer for model training and evaluation.
+
+Example:
+    >>> trainer = BaseTrainer(
+    ...     device="cuda",
+    ...     model=model,
+    ...     criterion=nn.CrossEntropyLoss(),
+    ...     optimizer=optim.Adam(model.parameters())
+    ... )
+    >>> train_loss = trainer.train(train_loader, epoch=0, total_epochs=10)
+    >>> val_results = trainer.evaluate(val_loader, epoch=0, total_epochs=10)
+"""
 
 from typing import Dict
 
@@ -11,7 +23,14 @@ from tqdm import tqdm
 
 
 class BaseTrainer:
-    """Handles model training, validation, and testing with mixed precision."""
+    """
+    Handles training and evaluation loops with automatic mixed precision (AMP).
+
+    Features:
+    - Automatic mixed precision
+    - Progress bars for loss tracking
+    - Evaluation with optional loss computation and prediction collection
+    """
 
     def __init__(
         self,
@@ -22,10 +41,10 @@ class BaseTrainer:
     ) -> None:
         """
         Args:
-            device: Device to perform training/evaluation on ('cuda', 'cpu').
+            device: Device for training ('cuda' or 'cpu').
             model: Neural network to train.
-            criterion: Loss function.
-            optimizer: Optimizer instance.
+            criterion: Loss function (e.g., CrossEntropyLoss).
+            optimizer: Optimizer instance (e.g., Adam, SGD).
         """
         self.device = device
         self.model = model.to(device)
@@ -34,7 +53,17 @@ class BaseTrainer:
         self.scaler = GradScaler(device=device)
 
     def train(self, loader: DataLoader, epoch: int, total_epochs: int) -> float:
-        """Runs one epoch of training."""
+        """
+        Run one training epoch with mixed precision.
+
+        Args:
+            loader: Training data loader.
+            epoch: Current epoch index (0-indexed).
+            total_epochs: Total number of epochs.
+
+        Returns:
+            Average training loss for the epoch.
+        """
         self.model.train()
         total_loss = 0.0
         pbar = tqdm(loader, desc=f"[Train] Epoch {epoch+1}/{total_epochs}", leave=False)
@@ -64,7 +93,23 @@ class BaseTrainer:
         compute_loss: bool = True,
         return_preds: bool = False,
     ) -> Dict[str, float | torch.Tensor]:
-        """Runs one epoch of evaluation."""
+        """
+        Run one evaluation epoch with optional loss and prediction collection.
+
+        Args:
+            loader: Validation/test data loader.
+            epoch: Current epoch index (0-indexed).
+            total_epochs: Total number of epochs.
+            compute_loss: Compute and return average loss if True.
+            return_preds: Collect and return predictions and targets if True.
+
+        Returns:
+            Dict containing:
+            - 'loss' (float): Average loss if compute_loss=True
+            - 'predictions' (Tensor): Model outputs [N, num_classes]
+                if return_preds=True
+            - 'targets' (Tensor): Ground truth labels [N] if return_preds=True
+        """
         self.model.eval()
         total_loss = 0.0
         targets, preds = [], []
