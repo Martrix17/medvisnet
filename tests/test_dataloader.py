@@ -1,5 +1,5 @@
 """
-Unit tests for CovidRadiographyDataModule and dataset integration.
+Unit tests for CovidRadiographyDataModule class and dataset integration.
 """
 
 import pytest
@@ -42,7 +42,7 @@ def test_class_weights_sum_to_one(mock_covid_data):
 
 
 def test_train_dataloader_balanced_sampling(mock_covid_data):
-    """Weighted sampler should roughly balance sampled labels."""
+    """Weighted sampler should balance sampled labels."""
     torch.manual_seed(42)
     dm = CovidRadiographyDataModule(mock_covid_data, batch_size=8)
     dm.setup()
@@ -62,7 +62,6 @@ def test_train_dataloader_balanced_sampling(mock_covid_data):
 
 
 def test_dataloader_shapes(mock_covid_data):
-    """Ensure dataloader returns correct image and label shapes."""
     dm = CovidRadiographyDataModule(mock_covid_data, batch_size=4)
     dm.setup()
 

@@ -1,4 +1,4 @@
-"""Unit tests for metrics manager."""
+"""Unit tests for MetricsManager class."""
 
 import torch
 

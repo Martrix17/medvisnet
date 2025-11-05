@@ -1,5 +1,5 @@
 """
-Unit tests for CovidRadiographyDataset.
+Unit tests for CovidRadiographyDataset class.
 """
 
 import torch
@@ -40,7 +40,7 @@ def test_label_index_consistency(mock_covid_data):
         assert dataset.idx_to_class[idx] == label_name
 
 
-def test_skips_invalid_directories(tmp_path):
+def test_skip_invalid_directories(tmp_path):
     (tmp_path / "INVALID").mkdir()
     dataset = CovidRadiographyDataset(tmp_path)
     assert len(dataset) == 0

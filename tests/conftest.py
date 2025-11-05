@@ -1,5 +1,5 @@
 """
-Pytest fixtures for MedVisNet tests.
+Pytest fixtures for tests.
 Centralizes creation of mock datasets and shared configs.
 """
 

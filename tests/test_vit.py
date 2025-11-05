@@ -1,5 +1,5 @@
 """
-Unit tests for VisionTransformer creation.
+Unit tests for VisionTransformer class.
 """
 
 import pytest

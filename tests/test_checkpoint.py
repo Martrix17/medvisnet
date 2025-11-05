@@ -1,4 +1,4 @@
-"""Unit tests fro CheckpointManager."""
+"""Unit tests for CheckpointManager class."""
 
 import torch
 import torch.nn as nn
@@ -16,7 +16,7 @@ class DummyModel(nn.Module):
 
 
 def test_checkpoint_save_and_load(tmp_path):
-    """Ensure checkpoint saves and loads model + optimizer correctly."""
+    """Ensure checkpoint saves and loads model and optimizer correctly."""
     model = DummyModel().to(DEVICE)
     optimizer = optim.Adam(model.parameters())
     scaler = torch.amp.GradScaler(device=DEVICE)
@@ -35,7 +35,7 @@ def test_checkpoint_save_and_load(tmp_path):
 
 
 def test_save_if_improved_patience_interval(tmp_path):
-    """Checkpoint should only save when loss improves AND patience interval passes."""
+    """Checkpoint should only save when loss improves and patience interval passes."""
     model = DummyModel().to(DEVICE)
     optimizer = optim.Adam(model.parameters())
     scaler = torch.amp.GradScaler(device=DEVICE)

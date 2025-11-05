@@ -52,7 +52,7 @@ def tiny_data_module():
 
 
 def test_smoke_trainer_loop(tiny_data_module):
-    """Minimal end-to-end training and testing smoke test."""
+    """Minimal training and testing smoke test."""
     model = nn.Sequential(nn.Flatten(), nn.Linear(3 * 32 * 32, 4))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
