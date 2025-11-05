@@ -1,4 +1,16 @@
-"""Metrics management for multi-class classification."""
+"""
+Metrics management for multi-class classification metrics.
+
+Example:
+    >>> metrics = MetricsManager(num_classes=4, device="cuda")
+    >>> results = metrics.compute(preds, targets)
+    >>> print(results["Validation metrics/accuracy"])
+
+    >>> metrics.set_mode(test_mode=True)
+    >>> test_results = metrics.compute(
+    ...     preds, targets, label_names=["COVID", "Normal", ...]
+    ... )
+"""
 
 from typing import Dict, List
 
@@ -14,14 +26,19 @@ from torchmetrics.classification import (
 
 class MetricsManager:
     """
-    Metrics computation and aggregation for multi-class classification.
+    Manages metric computation for multi-class classification.
+
+    Supports two modes:
+    - Training/validation: accuracy, precision, recall, F1, AUROC
+    - Test: AUROC, ROC curves, confusion matrix, classification report
     """
 
     def __init__(self, num_classes: int, device: str, test_mode: bool = False) -> None:
         """
         Args:
-            num_classes (int): Number of classes in the classification task.
-            device (str): Device to perform metric computations on ('cuda', 'cpu').
+            num_classes: Number of classes in the classification task.
+            device: Device for metric computations ('cuda' or 'cpu').
+            test_mode: Initialize in test mode if True (default: validation mode).
         """
         self.device = device
         self.num_classes = num_classes
@@ -29,13 +46,13 @@ class MetricsManager:
         self._init_metrics()
 
     def set_mode(self, test_mode: bool) -> None:
-        """Switch metrics between training/validation and test mode."""
+        """Switches between training/validation and test mode metrics sets."""
         if self.test_mode != test_mode:
             self.test_mode = test_mode
             self._init_metrics()
 
     def _init_metrics(self) -> None:
-        """Initialize metrics with the given number of classes."""
+        """Initialize metrics based on current mode."""
         if self.test_mode:
             self.metrics = {
                 "auroc": MulticlassAUROC(num_classes=self.num_classes).to(self.device),
@@ -69,7 +86,19 @@ class MetricsManager:
         targets: torch.Tensor,
         label_names: List[str] | None = None,
     ) -> Dict[str, str | float | torch.Tensor]:
-        """Compute all metrics."""
+        """
+        Compute metrics for current mode.
+
+        Args:
+            preds: Model predictions [N, num_classes].
+            targets: Ground truth labels [N].
+            label_names: Class names for classification report (test mode only).
+
+        Returns:
+            Dict with metric names as keys and computed values. In validation mode,
+            keys are prefixed with "Validation metrics/". Test mode includes a
+            "report" key with the classification report string.
+        """
         preds_class = torch.argmax(preds, dim=1)
 
         results = {}

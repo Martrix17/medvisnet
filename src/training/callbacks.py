@@ -1,10 +1,21 @@
-"""Callbacks for training process such as Early Stopping."""
+"""
+Callbacks for controlling training processes.
+
+Example:
+    >>> early_stopping = EarlyStopping(patience=5, delta=0.01)
+    >>> for epoch in range(epochs):
+    ...     val_loss = validate()
+    ...     if early_stopping(val_loss):
+    ...         break
+"""
 
 
 class EarlyStopping:
     """
-    Early stopping to monitor validation loss and stop training when no improvement
-    is seen.
+    Stops training when validation loss plateaus or increases.
+
+    Monitors validation loss and triggers early stopping after 'patience' epochs
+    without improvement of at least 'delta'.
     """
 
     def __init__(
@@ -14,10 +25,8 @@ class EarlyStopping:
     ) -> None:
         """
         Args:
-            patience (int): Number of epochs with no improvement after which training
-            will be stopped.
-            delta (float): Minimum change in the monitored quantity to qualify as an
-            improvement.
+            patience: Number of epochs without improvement before stopping.
+            delta: Minimum loss reduction to count as improvement.
         """
         self.patience = patience
         self.delta = delta
@@ -26,7 +35,15 @@ class EarlyStopping:
         self.early_stop = False
 
     def __call__(self, val_loss: float) -> bool:
-        """Call method to check if early stepping should trigger."""
+        """
+        Check if training should stop based on validation loss.
+
+        Args:
+            val_loss: Current validation loss.
+
+        Returns:
+            True if early stopping should trigger, False otherwise.
+        """
         if val_loss < self.best_loss - self.delta:
             self.best_loss = val_loss
             self.counter = 0
