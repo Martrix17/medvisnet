@@ -220,6 +220,7 @@ __marimo__/
 *.pyo
 data/
 !/src/data/
+!/src/models/
 !/config/data/
 models/
 mlruns/
