@@ -1,4 +1,17 @@
-"""MLFlow logger module for experiment tracking."""
+"""
+Logger wrapper for experiment tracking and artifact management.
+
+Example:
+    >>> logger = MLflowLogger(
+    ...   run_name="vit_b_16_run1",
+    ...   experiment_name="COVID_Classification"
+    ... )
+    >>> logger.start_run()
+    >>> logger.log_params({"lr": 0.001, "batch_size": 32})
+    >>> logger.log_metrics({"train_loss": 0.5}, step=1)
+    >>> logger.log_figure(fig, "confusion_matrix.png")
+    >>> logger.end_run()
+"""
 
 from typing import Any, Dict
 
@@ -6,8 +19,8 @@ import mlflow
 from matplotlib.figure import Figure
 
 
-class MLFlowLogger:
-    """MLFlow logger for experiment tracking."""
+class MLflowLogger:
+    """Wrapper for MLflow experiment tracking."""
 
     def __init__(
         self,
@@ -18,10 +31,10 @@ class MLFlowLogger:
     ) -> None:
         """
         Args:
-            run_name (str): Name of the MLFlow run.
-            uri (str): Tracking URI.
-            experiment_name (str): Name of the experiment.
-            log_system (bool): Whether to log system metrics.
+            run_name: Name for this MLflow run.
+            uri: Tracking URI (local directory or remote server).
+            experiment_name: Experiment name for grouping runs.
+            log_system: Log system metrics if True.
         """
         self.uri = uri
         self.experiment_name = experiment_name
@@ -29,7 +42,7 @@ class MLFlowLogger:
         self.run_name = run_name
 
     def start_run(self) -> None:
-        """Start MLFlow run-"""
+        """Start MLflow run."""
         mlflow.set_tracking_uri(self.uri)
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name=self.run_name, log_system_metrics=self.log_system)
@@ -42,30 +55,30 @@ class MLFlowLogger:
         """Set run name."""
         self.run_name = run_name
 
+    def set_tags(self, tags: Dict[str, Any]) -> None:
+        """Set tags to MLflow."""
+        mlflow.set_tag(tags)
+
     def log_metrics(self, metrics: Dict[str, Any], step: int) -> None:
-        """Log scalar metrics to MLFlow."""
+        """Log scalar metrics at a specific training step."""
         mlflow.log_metrics(metrics=metrics, step=step)
 
     def log_params(self, params: Dict[str, Any]) -> None:
-        """Log hyperparameters to MLFlow."""
+        """Log hyperparameters for the run."""
         mlflow.log_params(params=params)
 
     def log_artifact(self, file_path: str) -> None:
-        """Log file or drectory as an artifact."""
+        """Log file or directory as an artifact."""
         mlflow.log_artifact(artifact_path=file_path)
 
     def log_text(self, text: Any, file_path: str) -> None:
-        """Log text content as an artifact."""
+        """Log text content as an artifact file."""
         mlflow.log_text(text=text, artifact_file=file_path)
 
     def log_figure(self, fig: Figure, file_path: str) -> None:
-        """Log matplotlib figure as an artifact."""
+        """Log matplotlib figure as an image artifact."""
         mlflow.log_figure(figure=fig, artifact_file=file_path)
 
-    def log_tags(self, tags: Dict[str, Any]) -> None:
-        """Log tags to MLFlow."""
-        mlflow.set_tag(tags)
-
     def end_run(self) -> None:
-        """End MLFlow run."""
+        """End MLflow run."""
         mlflow.end_run()

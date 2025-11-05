@@ -1,6 +1,18 @@
-"""Checkpoint management for saving and loading model states."""
+"""
+Checkpoint management for saving and loading model states.
 
-import os
+Example:
+    >>> checkpoint_manager = CheckpointManager(device="cuda", save_dir="checkpoints")
+    >>> # During training
+    >>> checkpoint_manager.save_if_improved(
+    ...     epoch, model, optimizer, scaler, scheduler, val_loss
+    ... )
+    >>> # For resuming training
+    >>> start_epoch = checkpoint_manager.load(
+    ...     model, optimizer, scaler, scheduler, resume_training=True
+    ... )
+"""
+
 from pathlib import Path
 
 import torch
@@ -10,24 +22,30 @@ from torch.amp import GradScaler
 
 
 class CheckpointManager:
-    """Handles saving and loading model and optimizer checkpoints."""
+    """
+    Manages model checkpointing with patience-based saving to avoid over-saving.
+
+    Features:
+    - Saves only when validation loss improves and patience interval has passed
+    - Loads model, optimizer, scaler, and scheduler states
+    - Supports training resumption from saved epoch
+    """
 
     def __init__(
         self,
         device: str,
-        save_dir: str = "experiments/checkpoints",
+        save_dir: str = "models/checkpoints",
         filename: str = "best_model.pt",
         patience: int = 1,
         verbose: bool = True,
     ) -> None:
         """
         Args:
-            save_dir (str): Directory to save checkpoints.
-            filename (str): Filename for the checkpoint.
-            device (str): Device to map the loaded checkpoint to ('cuda', 'cpu').
-            patience (int): number of epochs to wait between saving checkpoints
-                            if validation loss is improving.
-            verbose (bool): Whether to print status messages.
+            device: Device for loading checkpoints ('cuda' or 'cpu').
+            save_dir: Directory to save checkpoints.
+            filename: Checkpoint filename.
+            patience: Minimum epochs between saves when loss improves.
+            verbose: Print status messages if True.
         """
         self.device = device
         self.save_dir = Path(save_dir)
@@ -49,7 +67,17 @@ class CheckpointManager:
         scheduler: optim.lr_scheduler.LRScheduler = None,
         val_loss: float = float("inf"),
     ) -> None:
-        """Save current model state."""
+        """
+        Save checkpoint with model and training state.
+
+        Args:
+            epoch: Current epoch.
+            model: Model to save.
+            optimizer: Optimizer state to save (optional).
+            scaler: GradScaler state for mixed precision (optional).
+            scheduler: Scheduler state to save (optional).
+            val_loss: Validation loss to store in checkpoint.
+        """
         checkpoint = {
             "epoch": epoch,
             "model_state": model.state_dict(),
@@ -59,16 +87,26 @@ class CheckpointManager:
             "val_loss": val_loss,
         }
 
-        path = os.path.join(self.save_dir, self.filename)
+        path = Path(self.save_dir) / self.filename
         torch.save(checkpoint, path)
 
     def save_if_improved(self, epoch, model, optimizer, scaler, scheduler, val_loss):
-        """Save model if validation loss improves and patience interval passed."""
+        """
+        Save checkpoint only if validation loss improved and patience interval passed.
+
+        Args:
+            epoch: Current epoch.
+            model: Model to save.
+            optimizer: Optimizer state to save.
+            scaler: GradScaler state for mixed precision.
+            scheduler: Scheduler state to save.
+            val_loss: Current validation loss.
+        """
         if val_loss < self.best_loss:
             if epoch - self.counter >= self.patience:
                 if self.verbose:
                     print(
-                        f"💾 Validation improved on epoch {epoch} "
+                        f"Validation improved on epoch {epoch} "
                         f"({self.best_loss:.4f} → {val_loss:.4f}). Saving checkpoint."
                     )
                 self.best_loss = val_loss
@@ -83,16 +121,28 @@ class CheckpointManager:
         scheduler: optim.lr_scheduler.LRScheduler = None,
         resume_training: bool = False,
     ) -> int:
-        """Load model and optional optimizer/scheduler states."""
-        path = os.path.join(self.save_dir, self.filename)
-        if not os.path.exists(path):
-            print("⚠️ No checkpoint found. Starting fresh.")
+        """
+        Load checkpoint into model.
+
+        Args:
+            model: Model to load weights into.
+            optimizer: Optimizer to load state into (optional).
+            scaler: GradScaler to load state into (optional).
+            scheduler: Scheduler to load state into (optional).
+            resume_training: Return saved epoch + 1 if True, otherwise return 0.
+
+        Returns:
+            Starting epoch number (0 for fresh start, saved_epoch + 1 for resuming).
+        """
+        path = Path(self.save_dir) / self.filename
+        if not Path(path).exists():
+            print("No checkpoint found. Starting fresh.")
             return 0
 
         checkpoint = torch.load(path, map_location=self.device)
 
         if "model_state" not in checkpoint:
-            raise ValueError("Invalid checkpoint: missing model_state.")
+            raise KeyError("Invalid checkpoint: missing model_state.")
 
         model.load_state_dict(checkpoint["model_state"])
 
@@ -103,11 +153,11 @@ class CheckpointManager:
         if scheduler and "scheduler_state" in checkpoint:
             scheduler.load_state_dict(checkpoint["scheduler_state"])
 
-        print(f"✅ Loaded checkpoint from {path}.")
+        print(f"Loaded checkpoint from {path}.")
 
         if resume_training:
             self.start_epoch = checkpoint.get("epoch", 0) + 1
-            print(f"✅ Resuming from epoch {self.start_epoch}.")
+            print(f"Resuming from epoch {self.start_epoch}.")
             return self.start_epoch
 
         return 0
