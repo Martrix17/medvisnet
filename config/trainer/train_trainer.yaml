@@ -1,5 +1,5 @@
 device: "cuda"
-epochs: 50
+epochs: 100
 val_every_n_epochs: 1
 compute_metrics_n_val_epoch: 2
 load_checkpoint: false
@@ -20,11 +20,17 @@ scheduler:
   patience: 4
 
 early_stopping:
-  patience: 12
+  patience: 10
   delta: 0.001
 
 checkpoint:
-  save_dir: "experiments/checkpoints"
-  filename: "base_model.pt"
-  patience: 3
+  save_dir: "models/checkpoints"
+  filename: "${logging.run_name}.pt"
+  patience: 2
   vebose: true
+
+export:
+  export_after_training: true
+  save_dir: "models/exported"
+  filename: "${logging.run_name}.onnx"
+  validate_export: true

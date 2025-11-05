@@ -1,12 +1,12 @@
 device: "cuda"
 load_checkpoint: true
 plot_metrics: true
-local_save_dir: "results"
+local_save_dir: "results/testing/${logging.run_name}"
 
 criterion:
   name: CrossEntropyLoss
 
 checkpoint:
-  save_dir: "experiments/checkpoints"
-  filename: "base_model.pt"
+  save_dir: "models/checkpoints"
+  filename: "${logging.run_name}.pt"
   patience: 0

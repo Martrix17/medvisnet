@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - data: data
   - logging: mlflow
+  - data: data
   - model: vit
   - trainer: train_trainer

@@ -1,4 +1,4 @@
 uri: "mlruns"
 experiment_name: "ViT_COVID_Classification_Base"
-run_name: "vit_baseline"
+run_name: "base_${model.model_name}"
 log_system: true

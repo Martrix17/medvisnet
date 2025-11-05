@@ -6,7 +6,7 @@ defaults:
 
 logging:
   experiment_name: "ViT_COVID_Classification_Freeze"
-  run_name: "vit_freeze"
+  run_name: "freeze_${model.model_name}"
 
 data:
   batch_size: 40
@@ -24,11 +24,9 @@ trainer:
     lr: 5e-5
     weight_decay: 1e-4
 
-  checkpoint:
-    filename: "freeze_model.pt"
-
 model:
   name: "vit_b_16"
+  num_hidden_layers: 2
   dropout: 0.2
   weights: 'DEFAULT'
   freeze_backbone: true

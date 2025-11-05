@@ -1,5 +1,5 @@
 model_name: "vit_b_16"
 num_hidden_layers: 1
-dropout: 0.3
 weights: 'DEFAULT'
-freeze_backbone: true
+dropout: 0.2
+freeze_backbone: false
