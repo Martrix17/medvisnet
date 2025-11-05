@@ -1,4 +1,6 @@
-"""Main train function for iamge classification."""
+"""Main train function for image classification."""
+
+from pathlib import Path
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -16,6 +18,7 @@ from src.training.factories import (
     create_vit_model,
 )
 from src.training.trainer import Trainer
+from src.utils.exporter import export_model
 from src.utils.helper import extract_hparams_from_cfg
 
 
@@ -65,14 +68,25 @@ def main(cfg: DictConfig):
     )
 
     print(f"Starting training for {cfg.trainer.epochs} epochs on device: {device}")
-    trainer.fit(
-        load_checkpoint=cfg.trainer.load_checkpoint,
-        resume_training=cfg.trainer.resume_training,
-    )
+    trainer.fit(load_checkpoint=cfg.trainer.load_checkpoint)
     print(
-        "Training complete. Best model saved at:",
+        "✅ Training complete. Best model saved at:",
         checkpoint_manager.save_dir / checkpoint_manager.filename,
     )
+
+    if cfg.trainer.export.export_after_training:
+        export_model(
+            model=model,
+            checkpoint_path=str(
+                checkpoint_manager.save_dir / checkpoint_manager.filename
+            ),
+            export_path=str(
+                Path(cfg.trainer.export.save_dir) / cfg.trainer.export.filename
+            ),
+            image_size=cfg.data.image_size,
+            device=device,
+            validate_export=cfg.trainer.export.validate_export,
+        )
 
     logger.end_run()
 
