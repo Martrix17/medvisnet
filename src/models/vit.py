@@ -1,12 +1,18 @@
-"""Vision transformer building from torchvision implementations."""
+"""
+Vision transformer building class from torchvision implementations.
+
+Example:
+    >>> model = VisionTransformer("vit_b_16", num_classes=4, weights="IMAGENET1K_V1")
+    >>> output = model(torch.randn(1, 3, 224, 224))
+"""
 
 import torch
-from torch import nn
+import torch.nn as nn
 from torchvision.models import vision_transformer
 
 
 class VisionTransformer(nn.Module):
-    """Vision Transformer model for image classification."""
+    """Vision Transformer wrapper with customizable classification head."""
 
     AVAILABLE_MODELS = {
         "vit_b_16": vision_transformer.vit_b_16,
@@ -26,12 +32,12 @@ class VisionTransformer(nn.Module):
     ) -> None:
         """
         Args:
-            model_name (str): Name of the torchvision ViT model to use.
-            num_classes (int): Number of output classes.
-            num_hidden_layers (int): Number of hidden layers in classification head.
-            weights (str): Pretrained weights to use. See torchvision docs.
-            dropout (float): Dropout rate for the classification head.
-            freeze_backbone (bool): Whether to freeze the backbone during training.
+            model_name: Name of torchvision ViT model (see list_available_models()).
+            num_classes: Number of output classes.
+            num_hidden_layers: Number of hidden layers in classification head.
+            weights: Pretrained weights identifier (e.g., "IMAGENET1K_V1") or None.
+            dropout: Dropout rate in classification head.
+            freeze_backbone: Freeze encoder parameters if True.
         """
         super().__init__()
         self.model_name = model_name
@@ -45,7 +51,7 @@ class VisionTransformer(nn.Module):
         self._freeze_backbone()
 
     def _build_model(self):
-        """Build base model."""
+        """Build base ViT model from torchvision."""
         if self.model_name not in self.AVAILABLE_MODELS:
             raise ValueError(
                 f"Input model_name ({self.model_name}) not found."
@@ -56,7 +62,11 @@ class VisionTransformer(nn.Module):
         return builder(weights=self.weights)
 
     def _replace_head(self, num_hidden_layers: int = 1) -> None:
-        """Replace classification head with custom head."""
+        """
+        Replace default head with custom classification head.
+
+        Each hidden layer halves the dimension with BatchNorm, ReLU, and Dropout.
+        """
         in_features = self.vit.heads.head.in_features
         layers = [nn.Dropout(self.dropout_rate)]
 
@@ -77,7 +87,7 @@ class VisionTransformer(nn.Module):
         self.vit.heads.head = nn.Sequential(*layers)
 
     def _freeze_backbone(self) -> None:
-        """Freeze backbone encoder parameters."""
+        """Freeze encoder parameters if freeze_backbone is True."""
         if self.freeze_backbone:
             for param in self.vit.encoder.parameters():
                 param.requires_grad = False
@@ -87,10 +97,16 @@ class VisionTransformer(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def forward(self, x) -> torch.Tensor:
-        """Forward pass."""
+        """
+        Args:
+            x: Input tensor of shape [B, C, H, W].
+
+        Returns:
+            Logits of shape [B, num_classes].
+        """
         return self.vit(x)
 
     @classmethod
     def list_available_models(cls) -> list[str]:
-        """List all available model names."""
+        """Return list of available model names."""
         return list(cls.AVAILABLE_MODELS.keys())
