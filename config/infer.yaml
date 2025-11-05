@@ -1,0 +1,23 @@
+# @package _global_
+
+defaults:
+  - /train        # base training config
+  - /experiment@: null  # optional experiment override
+  - _self_
+
+inference:
+  backend: "torch"
+  device: "cpu"
+  image_path: "data/COVID-19_Radiography_Dataset/COVID/images/COVID-1.png"
+  local_save_dir: "results/inference/${inference.backend}_${logging.run_name}"
+
+  checkpoint:
+    save_dir: "experiments/checkpoints"
+    filename: "${logging.run_name}.pt"
+  
+  export:
+    save_dir: "experiments/exported"
+    filename: "${logging.run_name}.onnx"
+
+  num_classes: 4
+  labels: [COVID, Lung_Opacity, Normal, Viral Pneumonia]
