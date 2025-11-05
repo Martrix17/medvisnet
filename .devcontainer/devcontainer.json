@@ -5,12 +5,13 @@
     "context": ".."
   },
   "runArgs": [
-    "--gpus",
-    "all",
+    "--gpus=all",
     "--shm-size=8g"
   ],
   "containerEnv": {
-    "PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/src"
+    "PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/src",
+    "ONNXRUNTIME_DIR": "/opt/onnxruntime",
+    "LD_LIBRARY_PATH": "/opt/onnxruntime/lib:${containerEnv:LD_LIBRARY_PATH}"
   },
   "postCreateCommand": "pip install --no-cache-dir -r requirements.txt && pre-commit install",
   "customizations": {
@@ -21,13 +22,20 @@
         "editor.formatOnSave": true,
         "python.analysis.extraPaths": [
           "src"
-        ]
+        ],
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "cmake.configureOnOpen": true,
+        "cmake.sourceDirectory": "${containerWorkspaceFolder}/inference_cpp",
+        "cmake.buildDirectory": "${containerWorkspaceFolder}/inference_cpp/build"
       },
       "extensions": [
         "ms-python.python",
         "ms-python.black-formatter",
         "ms-python.isort",
         "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
         "github.vscode-pull-request-github"
       ]
     }

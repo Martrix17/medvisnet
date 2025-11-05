@@ -220,9 +220,10 @@ __marimo__/
 *.pyo
 data/
 !/src/data/
-!/src/config/data/
-experiments/
+!/config/data/
+models/
 mlruns/
 outputs/
+results/inference/
 .env
 .vscode
